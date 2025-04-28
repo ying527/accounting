@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智能记账系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- 引入图表库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- 使用本地简化版日期选择器替代flatpickr -->
+    <script src="flatpickr.js"></script>
+    <style>
+        /* 日期选择器基本样式 */
+        .simple-date-picker-container {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 14px;
+        }
+        input[readonly] {
+            background-color: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>智能记账系统</h1>
+            <nav>
+                <ul class="tab-menu">
+                    <li class="active" data-tab="accounting">记账</li>
+                    <li data-tab="reserve">备用金</li>
+                    <li data-tab="dashboard">看板</li>
+                </ul>
+            </nav>
+        </header>
+        
+        <main>
+            <!-- 快速记账模块 -->
+            <section id="accounting" class="tab-content active">
+                <div class="card">
+                    <h2>快速记账</h2>
+                    <form id="accounting-form">
+                        <div class="form-group">
+                            <label for="date-time">日期</label>
+                            <input type="text" id="date-time" readonly placeholder="点击选择日期">
+                        </div>
+                        <div class="form-group">
+                            <label for="category">分类</label>
+                            <div class="category-group">
+                                <input type="text" id="category" list="categories" placeholder="选择或输入分类">
+                                <button type="button" id="add-category" class="add-btn">+</button>
+                                <datalist id="categories">
+                                    <option value="水果">
+                                    <option value="买菜">
+                                    <option value="餐饮">
+                                    <option value="交通">
+                                    <option value="日用品">
+                                </datalist>
+                            </div>
+                        </div>
+                        <div class="form-group" id="subcategory-group" style="display: none;">
+                            <label for="subcategory">二级标签</label>
+                            <div class="category-group">
+                                <input type="text" id="subcategory" list="subcategories" placeholder="选择或输入二级标签">
+                                <button type="button" id="add-subcategory" class="add-btn">+</button>
+                                <datalist id="subcategories"></datalist>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">金额</label>
+                            <input type="number" id="amount" step="0.01" min="0.01" placeholder="输入金额">
+                        </div>
+                        <div class="form-group">
+                            <label for="notes">备注</label>
+                            <textarea id="notes" placeholder="添加备注信息"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">保存记录</button>
+                    </form>
+                </div>
+                
+                <div class="card">
+                    <h2>最近记录</h2>
+                    <div class="records-list" id="recent-records">
+                        <!-- 动态填充记录 -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 备用金管理模块 -->
+            <section id="reserve" class="tab-content">
+                <div class="card">
+                    <h2>备用金登记</h2>
+                    <form id="reserve-form">
+                        <div class="form-group">
+                            <label for="reserve-date">发放日期</label>
+                            <input type="text" id="reserve-date" readonly placeholder="点击选择日期">
+                        </div>
+                        <div class="form-group">
+                            <label for="reserve-amount">发放金额</label>
+                            <input type="number" id="reserve-amount" min="1" step="1" placeholder="输入整数金额">
+                        </div>
+                        <div class="form-group">
+                            <label for="reserve-notes">备注</label>
+                            <textarea id="reserve-notes" placeholder="添加备注信息"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">登记发放</button>
+                    </form>
+                </div>
+                
+                <div class="card">
+                    <h2>发放历史</h2>
+                    <div class="records-list" id="reserve-records">
+                        <!-- 动态填充记录 -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 智能看板模块 -->
+            <section id="dashboard" class="tab-content">
+                <div class="card">
+                    <h2>资金状态</h2>
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-range="all">全部</button>
+                        <button class="filter-btn" data-range="month">本月</button>
+                        <button class="filter-btn" data-range="custom">自定义</button>
+                    </div>
+                    <div id="balance-custom-date-range" class="custom-date-range" style="display: none;">
+                        <div class="date-inputs">
+                            <input type="text" id="balance-start-date" placeholder="开始日期" readonly>
+                            <span>至</span>
+                            <input type="text" id="balance-end-date" placeholder="结束日期" readonly>
+                        </div>
+                        <div class="date-range-actions">
+                            <button id="apply-balance-date-range" class="apply-btn">应用</button>
+                        </div>
+                    </div>
+                    <div class="balance-info">
+                        <div class="balance-header">
+                            <span class="balance-title">当前余额</span>
+                            <span id="current-balance" class="balance-amount">¥0.00</span>
+                        </div>
+                        <div class="balance-bar-container">
+                            <div id="balance-bar" class="balance-bar"></div>
+                        </div>
+                        <div class="balance-details">
+                            <div class="balance-detail">
+                                <span>发放总额</span>
+                                <span id="total-reserve">¥0.00</span>
+                            </div>
+                            <div class="balance-detail">
+                                <span>支出总额</span>
+                                <span id="total-expense">¥0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>数据统计</h2>
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-period="week">本周</button>
+                        <button class="filter-btn" data-period="month">本月</button>
+                        <button class="filter-btn" data-period="quarter">近三月</button>
+                        <button class="filter-btn" data-period="custom">自定义</button>
+                    </div>
+                    <div id="custom-date-range" class="custom-date-range" style="display: none;">
+                        <div class="date-inputs">
+                            <input type="text" id="start-date" placeholder="开始日期" readonly>
+                            <span>至</span>
+                            <input type="text" id="end-date" placeholder="结束日期" readonly>
+                        </div>
+                        <div class="date-range-actions">
+                            <button id="apply-date-range" class="apply-btn">应用</button>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>支出分类</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="expense-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>资金流动趋势</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="trend-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>智能记账系统 &copy; 2023</p>
+        </footer>
+    </div>
+
+    <!-- 弹窗组件 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">标题</h2>
+            <div id="modal-body">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用本地简化版日期选择器替代flatpickr -->
+    <script>
+        // 兼容层：提供与flatpickr相同的接口
+        window.flatpickr = window.simpleDatePicker;
+    </script>
+    <script src="app.js"></script>
+</body>
+</html> 
